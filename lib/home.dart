@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:minhas_anotacoes/helper/anotacao_helper.dart';
 import 'package:minhas_anotacoes/model/anotacao.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -13,7 +15,8 @@ class _HomeState extends State<Home> {
 
   final TextEditingController _tituloController = TextEditingController();
   final TextEditingController _descricaoController = TextEditingController();
-  var _db = AnotacaoHelper();
+  final _db = AnotacaoHelper();
+  List<Anotacao> _anotacoes = [];
 
  _exibirTelaCadastro(){
  
@@ -75,6 +78,24 @@ class _HomeState extends State<Home> {
  
  }
 
+ _recuperarAnotacao() async{
+  List anotacoesRecuperadas = await _db.recuperarAnotacao();
+
+  List<Anotacao>? listaTemporaria = [];
+
+  for(var item in anotacoesRecuperadas){
+    Anotacao anotacao = Anotacao.fromMap(item);
+    listaTemporaria.add(anotacao);
+  }
+
+  setState(() {
+    _anotacoes = listaTemporaria!;
+  });
+
+  listaTemporaria = null;
+  //print("anotações recuperadas: ${anotacoesRecuperadas.toString()}");
+ }
+
  _salvarAnotacao() async {
   String titulo = _tituloController.text;
   String descricao = _descricaoController.text;
@@ -82,9 +103,37 @@ class _HomeState extends State<Home> {
   //print("data atual: " + DateTime.now().toString());
   Anotacao anotacao = Anotacao(titulo, descricao, DateTime.now().toString());
   int result = await _db.salvarAnotacao(anotacao);
-  print("salvar anotacao: ${result.toString()}");
+  //print("salvar anotacao: ${result.toString()}");
+  _tituloController.clear();
+  _descricaoController.clear();
+
+  _recuperarAnotacao();
  }
 
+ _formatarData(String data){
+
+  initializeDateFormatting("pt_BR");
+  /* d -> dia
+    M -> mês
+    y -> ano
+    H -> hora
+    m -> minutos
+    s -> segundos
+  */
+  var formatter = DateFormat("dd/MM/y H:m:s");
+  DateTime dataConvertida = DateTime.parse(data);
+  String dataFormatada = formatter.format(dataConvertida);
+
+  return dataFormatada;
+
+ }
+
+
+  @override
+  void initState() {
+    super.initState();
+    _recuperarAnotacao();
+  }
 
 
   @override
@@ -99,7 +148,27 @@ class _HomeState extends State<Home> {
         centerTitle: true,
         foregroundColor: Colors.white,
       ),
-      body: Container(),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemBuilder: (context, index){
+
+                final anotacao = _anotacoes[index];
+                return Card(
+                  shadowColor: Colors.black,
+                  elevation: 4,
+                  child: ListTile(
+                    title: Text(anotacao.titulo),
+                    subtitle: Text("${_formatarData(anotacao.data)} - ${anotacao.descricao}"),
+                  ),
+                );
+              },
+              itemCount: _anotacoes.length,
+            )
+          )
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
