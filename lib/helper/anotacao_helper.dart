@@ -51,4 +51,9 @@ class AnotacaoHelper {
     return anotacoes;
   }
 
+  Future<int> atualizarNota(Anotacao anotacao) async{
+    var bancoDados = await db;
+    return await bancoDados.update(nomeTabela, anotacao.toMap() as Map<String, Object?>, where: "id = ?", whereArgs: [anotacao.id]);
+  }
+
 }
